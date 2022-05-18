@@ -33,4 +33,7 @@ class ofApp : public ofBaseApp{
         ofShader cloudShader; // 알파 블렌딩 기법을 사용하기 위한 셰이더를 따로 만들어 사용할 것이므로 해당 셰이더 객체 변수 선언
         ofMesh cloudMesh; // 구름 텍스쳐를 씌워서 사용할 메쉬 객체 변수 선언
         ofImage cloudImg; // 구름 텍스쳐를 로드한 뒤, 프래그먼트 셰이더로 전송할 때 사용할 이미지 객체 변수 선언
+    
+        ofMesh sunMesh; // 태양 텍스쳐를 씌워서 사용할 메쉬 객체 변수 선언
+        ofImage sunImg; // 태양 텍스쳐를 로드한 뒤, 프래그먼트 셰이더로 전송할 때 사용할 이미지 객체 변수 선언
 };
