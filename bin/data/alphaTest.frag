@@ -1,11 +1,11 @@
 #version 410
 
-uniform sampler2D greenMan;
+uniform sampler2D tex; // 캐릭터 및 배경 메쉬에서 동시에 사용할 프래그먼트 셰이더로 변경했으므로, 텍스쳐를 받는 sampler2D 변수 이름을 'tex' 로 바꿈.
 in vec2 fragUV;
 out vec4 outCol;
 
 void main(){
-  outCol = texture(greenMan, fragUV);
+  outCol = texture(tex, fragUV);
 
   /*
     아래 if 문의 조건문과 블록같은 구조를 'Alpha testing (알파 테스팅)' 기법이라고 함.
@@ -28,6 +28,18 @@ void main(){
     즉, png 파일 형식인 캐릭터 텍스쳐의 배경부분(여기가 투명도가 전부 0일거임)은
     그래픽 파이프라인의 다음 단계인 프래그먼트 연산(처리) 로 넘어가지 못하고
     화면에 찍히지 않게 됨으로써, 캐릭터 이미지만 화면에 렌더될거임. 
+
+    이렇게 discard를 해주면, 프래그먼트 연산 처리 단계로 넘어가지 않게 되므로,
+    깊이버퍼를 통한 깊이계산에서도 해당 픽셀이 제외됨.
+
+    무슨 말이냐면, 암만 투명하게 렌더링되어도,
+    discard를 하지 않아서 다음 단계(프래그먼트 처리)로 넘어가버리면,
+    깊이버퍼가 적용되어서, 분명 투명한 픽셀인데,
+    이 투명한 픽셀에 의해서 뒤에 존재하는 메쉬 요소가 가려지는
+    괴상한 현상이 발생함.
+
+    -> 이 현상이 js api 4.0 에서 mesh 로 된 particleLight 구현할 때
+    배경이 투명한 marker 에 의해 가려졌던 이유임!
   */
   if (outCol.a < 0.7) {
     discard;
