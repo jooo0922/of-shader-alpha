@@ -27,7 +27,7 @@ void buildMesh(ofMesh& mesh, float w, float h, glm::vec3 pos) {
         int idx = i * 3; // 버텍스 위치는 버텍스 하나 당 3개의 좌표값이 필요하니 인덱스값도 3배수로 들어가는군.
         int uvIdx = i * 2; // 버텍스 uv좌표는 버텍스 하나 당 2개의 좌표값이 필요하니 인덱스값도 2배수로 들어가는군.
         mesh.addVertex(glm::vec3(verts[idx], verts[idx + 1], verts[idx + 2])); // 버텍스 위치는 각 버텍스당 3개의 좌표값을 갖는 glm::vec3 데이터를 추가해줌.
-        mesh.addTexCoord(glm::vec2(uvs[uvIdx], uvs[uvIdx + 1])); // 버텍스 uv는 각 버텍스당 2개의 좌표값을 갖는 glm::vec2 데이터를 추가해\줌.
+        mesh.addTexCoord(glm::vec2(uvs[uvIdx], uvs[uvIdx + 1])); // 버텍스 uv는 각 버텍스당 2개의 좌표값을 갖는 glm::vec2 데이터를 추가해 줌.
     }
     
     // 4개의 버텍스 순서를 인덱싱해서 어떻게 쿼드 메쉬의 삼각형들을 그려줄 것인지 결정함.
@@ -46,13 +46,18 @@ void ofApp::setup(){
     // height 은 전체 -1 ~ 1 에서 1.0 이 될테니 전체 y축 길이의 절반 (1.0 / 2) 이 될거임.
     buildMesh(charMesh, 0.1, 0.2, glm::vec3(0.0, -0.2, 0.0)); // 배경메쉬가 추가되면서, 캐릭터 메쉬의 사이즈와 위치를 조절함
     buildMesh(backgroundMesh, 1.0, 1.0, glm::vec3(0.0, 0.0, 0.5)); // 배경메쉬 생성 시, z좌표값이 캐릭터메쉬보다 커야(즉, 0보다 커야) NDC 좌표계 상에서 캐릭터 뒤에 가므로, z좌표값을 0보다 크게 설정해 줌. (아마 opengl은 z축이 컴퓨터 안쪽으로 갈수록 양의 방향인 거 같음.)
+    buildMesh(cloudMesh, 0.25, 0.15, glm::vec3(-0.55, 0.0, 0.0));
 
     alienImg.load("alien.png"); // ofShader 와 마찬가지로, bin/data 디렉토리를 기준으로 한 상대경로를 받으므로, 해당 디렉토리에 이미지 파일을 저장했다면 파일명만 인자로 넣어주면 됨.
     backgroundImg.load("forest.png"); // 배경 텍스쳐도 마찬가지로, bin/data 디렉토리에 저장해뒀으므로, 파일명만 인자로 넘겨줬음.
+    cloudImg.load("cloud.png"); // 구름 텍스쳐도 bin/data 디렉토리에 저장해뒀으므로, 파일명만 인자로 넘겨줌.
     
     // ofShader 객체에 bin/data 폴더에 작성한 셰이더 파일들을 불러와서 로드함.
     // bin/data 디렉토리를 기준으로 한 상대경로이므로, 파일명만 인자로 넣어주면 됨.
     alphaTestShader.load("passthrough.vert", "alphaTest.frag");
+    
+    // 알파 블렌딩 기법에 사용할 cloud.frag 셰이더를 새로운 ofShader 객체로 로드해 옴.
+    cloudShader.load("passthrough.vert", "cloud.frag");
 }
 
 //--------------------------------------------------------------
@@ -105,7 +110,16 @@ void ofApp::draw(){
     alphaTestShader.setUniformTexture("tex", backgroundImg, 0);
     backgroundMesh.draw();
     
-    alphaTestShader.end();
+    alphaTestShader.end(); // 캐릭터 메쉬와 배경메쉬까지 그리고, 현재 바인딩된 알파테스트 셰이더 사용을 중단하라고 gpu에게 명령함.
+    
+    // 새로운 알파블렌딩 셰이더를 사용하기 위해 gpu에게 cloudShader 에 로드된 셰이더를 바인딩하라고 명령함
+    cloudShader.begin();
+    
+    // 해당 셰이더로 구름 텍스쳐를 전송한 뒤, 구름메쉬를 그려줌.
+    cloudShader.setUniformTexture("tex", cloudImg, 0);
+    cloudMesh.draw();
+    
+    cloudShader.end(); // 셰이더 사용을 끝냄.
 }
 
 //--------------------------------------------------------------
