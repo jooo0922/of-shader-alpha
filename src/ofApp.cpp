@@ -49,10 +49,14 @@ void ofApp::setup(){
     buildMesh(cloudMesh, 0.25, 0.15, glm::vec3(-0.55, 0.0, 0.0));
     buildMesh(sunMesh, 1.0, 1.0, glm::vec3(0.0, 0.0, 0.4));
 
-    alienImg.load("alien.png"); // ofShader 와 마찬가지로, bin/data 디렉토리를 기준으로 한 상대경로를 받으므로, 해당 디렉토리에 이미지 파일을 저장했다면 파일명만 인자로 넣어주면 됨.
+    // alienImg.load("alien.png"); // ofShader 와 마찬가지로, bin/data 디렉토리를 기준으로 한 상대경로를 받으므로, 해당 디렉토리에 이미지 파일을 저장했다면 파일명만 인자로 넣어주면 됨.
+    alienImg.load("walk_sheet.png"); // 캐릭터 메쉬를 캐릭터 텍스쳐 대신, 스프라이트 시트 텍스쳐로 그려줄거임.
     backgroundImg.load("forest.png"); // 배경 텍스쳐도 마찬가지로, bin/data 디렉토리에 저장해뒀으므로, 파일명만 인자로 넘겨줬음.
     cloudImg.load("cloud.png"); // 구름 텍스쳐도 bin/data 디렉토리에 저장해뒀으므로, 파일명만 인자로 넘겨줌.
     sunImg.load("sun.png"); // 태양 텍스쳐도 bin/data 디렉토리에 저장해뒀으므로, 파일명만 인자로 넘겨줌.
+    
+    // 스프라이트 시트 텍스쳐를 그리기 위해서 spriteSheet.vert 셰이더 파일을 새로 만들었으므로, 얘를 바인딩하기 위한 ofShader 객체도 새로 만들어서 로드해 줌.
+    spritesheetShader.load("spritesheet.vert", "alphaTest.frag");
     
     // ofShader 객체에 bin/data 폴더에 작성한 셰이더 파일들을 불러와서 로드함.
     // bin/data 디렉토리를 기준으로 한 상대경로이므로, 파일명만 인자로 넣어주면 됨.
@@ -114,6 +118,44 @@ void ofApp::draw(){
      */
     ofEnableDepthTest();
     
+    // 텍스쳐 조절에 필요한 vec2 값과 offset 적용 시 얼마만큼 곱해서 더해줄 것인지, 그 frame 값을 매 프레임마다 계산해 줌.
+    static float frame = 0.0; // 프레임 변수 초기화
+    frame = (frame > 10) ? 0.0 : frame += 0.2; // draw() 함수가 1번 호출될 때마다 0.2씩 더해지니, frame의 정수부분이 변하려면 5번의 draw() 함수 호출, 즉 모니터 주사율이 60fps 라는 가정 하에, 약 1/60 * 5 = 1/30 = 0.0333...ms 즉, 33.3333...초에 한 번씩 frame의 정수부분이 바뀌므로, 프레임도 마찬가지로 33.333...초에 한 번씩 바뀔거임.
+    glm::vec2 spriteSize = glm::vec2(0.28, 0.19); // spriteSheet 텍스쳐에서 프레임 하나만큼의 사이즈(너비, 높이 각각)에 해당하는 uv좌표를 지정해놓음. (버텍스 셰이더에서 0 ~ 1 사이의 uv 좌표값에 이만큼의 vec2()를 매번 곱해줘서 전체 텍스쳐 중에서 프레임 하나에 해당하는 사이즈 만큼의 부분의 uv좌표값만 넘겨주도록 함.)
+    glm::vec2 spriteFrame = glm::vec2((int)frame % 3, (int)frame / 3);
+    /**
+     위에 spriteSize 에 곱한 다음 uv좌표에 추가적으로 더해줌으로써,
+     offset을 적용하기 위해 구해주는 vec2 값.
+     
+     지금 (int)frame 으로 해주고 있는데,
+     아마 frame 값의 정수부분만 가져오는 게 아닌가 싶음.
+     
+     그 정수값은 0 ~ 10 까지 있을거고,
+     frame % 3 은 0 ~ 10 까지의 값을 3으로 나눈 나머지값이니 0, 1, 2 중 하나가 나올거고,
+     frame / 3 은 0 ~ 10 까지의 값을 3으로 나는 몫이니 0, 1, 2, 3 중 하나가 나올거임.
+     spriteFrame 의 x컴포넌트는 0, 1, 2 중 하나이고,
+     y컴포넌트는 0, 1, 2, 3 중 하나일거임.
+     
+     지금 보면, spriteSheet 텍스쳐도 프레임이 x축 방향으로 3개로 나눠져있고 (0, 1, 2),
+     y축 방향으로 4개로 나눠져있으므로(0, 1, 2, 3) 어떤 원리인지 대충 감이 오지?
+     
+     실제로 frame 이 0이면 spriteFrame = vec2(0, 0) 이므로, x축으로 0번째, y축으로 0번째 프레임이 그려지고,
+     frame 이 1이면 spriteFrame = vec2(1, 0) 이므로, x축으로 1번째, y축으로 0번째 프레임이 그려지고,
+     frame 이 2이면 spriteFrame = vec2(2, 0) 이므로, x축으로 2번째, y축으로 0번째 프레임이 그려지고,
+     frame 이 3이면 spriteFrame = vec2(0, 1) 이므로, x축으로 0번째, y축으로 1번째 프레임이 그려지고,
+     .....
+     
+     이런 식으로 쭉쭉 나가서 11개의 프레임이 33.3333.. 초마다 한 번씩 바뀌면서
+     주기적으로 한 바퀴를 도는 식으로 스프라이트 시트 애니메이션을 그려내는 것임!
+     */
+    
+    spritesheetShader.begin(); // spriteSheet.vert 라는 uv 사이즈 및 오프셋 조절용 셰이더를 새로 바인딩한 ofShader 객체를 사용해서 캐릭터를 그려줄거임.
+    spritesheetShader.setUniform2f("size", spriteSize); // 위에서 계산한 spriteSize 값을 버텍스 셰이더의 size 유니폼변수로 넘겨줌
+    spritesheetShader.setUniform2f("offset", spriteFrame); // 위에서 계산한 spriteFrame 값을 버텍스 셰이더의 offset 유니폼변수로 넘겨줌
+    spritesheetShader.setUniformTexture("tex", alienImg, 0); // alphaTest.frag 셰이더에 존재하는 tex 라는 sampler2D 변수에 스프라이트 시트 텍스쳐를 넘겨줌.
+    charMesh.draw(); // 캐릭터 메쉬를 그려줌.
+    spritesheetShader.end(); // spriteSheetShader 셰이더 객체 사용을 중단함.
+    
     alphaTestShader.begin();
     
     /**
@@ -151,8 +193,8 @@ void ofApp::draw(){
     // alphaTestShader.setUniformTexture("tex", backgroundImg, 0);
     // backgroundMesh.draw();
     
-    alphaTestShader.setUniformTexture("tex", alienImg, 0);
-    charMesh.draw();
+    // alphaTestShader.setUniformTexture("tex", alienImg, 0);
+    // charMesh.draw();
     
     alphaTestShader.setUniformTexture("tex", backgroundImg, 0);
     backgroundMesh.draw();

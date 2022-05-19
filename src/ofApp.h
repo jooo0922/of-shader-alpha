@@ -36,4 +36,6 @@ class ofApp : public ofBaseApp{
     
         ofMesh sunMesh; // 태양 텍스쳐를 씌워서 사용할 메쉬 객체 변수 선언
         ofImage sunImg; // 태양 텍스쳐를 로드한 뒤, 프래그먼트 셰이더로 전송할 때 사용할 이미지 객체 변수 선언
+    
+        ofShader spritesheetShader; // 스프라이트 시트 텍스쳐의 uv 좌표값의 전체 사이즈 및 오프셋을 조절하기 위한 셰이더를 바인딩하기 위해 새로운 셰이더 객체 변수 선언
 };
