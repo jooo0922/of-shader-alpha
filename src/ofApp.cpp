@@ -67,8 +67,39 @@ void ofApp::setup(){
 }
 
 //--------------------------------------------------------------
+/**
+ update() 함수는 뭐냐면, draw() 함수처럼 매 프레임마다 호출되지만,
+ 메쉬의 드로우콜 또는 렌더링과 직접적으로 관련이 없는 로직들,
+ 즉, draw() 에 넣기 애매한 로직들을 update() 로직에 넣어주는 거라고 보면 됨.
+ 
+ 캐릭터 이동에 필요한 값인 charPos 를 계산해주는 로직의 경우
+ 이 부분에 넣어주는 게 적당하겠지.
+ */
 void ofApp::update(){
-
+    if (walkRight) {
+        // 오른쪽 화살표 키가 눌러진 상태임이 감지되면,
+        // ofGetLastFrameTime() 이라는 델타 타임값을 리턴해주는 함수를 이용해서, x축 방향으로의 이동속도 값인 speed 를 구하고,
+        // 이 값을 x컴포넌트로 갖는 vec3 값을 charPos 에 누적계산해 줌.
+        float speed = 0.5 * ofGetLastFrameTime();
+        charPos += glm::vec3(speed, 0, 0);
+    }
+    
+    /**
+     ofGetLastFrameTime() 에 대한 설명
+     
+     이전 프레임의 시작부터 현재 프레임 시작까지 경과한 시간값을 리턴해주는 오픈프레임웍스 내장함수.
+     대부분의 그래픽 엔진에서는 이런 시간 간격값을 '델타타임' 이라고 부름.
+     
+     이런 걸 왜 받냐면, 디바이스나 디스플레이마다 Frame Rate 이 다르기 때문애
+     렌더링 루프를 호출하는 간격이 전부 제각각임.
+     
+     어떤 거는 1초에 60번 호출하고, 어떤 거는 1초에 30번 호출하고 등등...
+     
+     그래서 이런 주사율에 관계없이 항상 일정하게 움직이는 속도를 유지하기 위해
+     게임 쪽에서는 주로 이런 델타타임 값을 사용해서 속도를 맞춰준다고 함.
+     
+     자세한 설명은 p.131 참고
+     */
 }
 
 //--------------------------------------------------------------
@@ -153,6 +184,7 @@ void ofApp::draw(){
     spritesheetShader.setUniform2f("size", spriteSize); // 위에서 계산한 spriteSize 값을 버텍스 셰이더의 size 유니폼변수로 넘겨줌
     spritesheetShader.setUniform2f("offset", spriteFrame); // 위에서 계산한 spriteFrame 값을 버텍스 셰이더의 offset 유니폼변수로 넘겨줌
     spritesheetShader.setUniformTexture("tex", alienImg, 0); // alphaTest.frag 셰이더에 존재하는 tex 라는 sampler2D 변수에 스프라이트 시트 텍스쳐를 넘겨줌.
+    spritesheetShader.setUniform3f("translation", charPos); // update() 함수에서 계산되고 있는 움직임값인 charPos 를 버텍스 셰이더의 유니폼 변수로 넘겨줌.
     charMesh.draw(); // 캐릭터 메쉬를 그려줌.
     spritesheetShader.end(); // spriteSheetShader 셰이더 객체 사용을 중단함.
     
@@ -270,11 +302,20 @@ void ofApp::draw(){
 
 //--------------------------------------------------------------
 void ofApp::keyPressed(int key){
-
+    // 오른쪽 화살표 키 입력이 감지되면,
+    // 움직임 값인 charPos 를 갱신하도록 walkRight 을 true로 변경함.
+    if (key == ofKey::OF_KEY_RIGHT) {
+        walkRight = true;
+    }
 }
 
 //--------------------------------------------------------------
 void ofApp::keyReleased(int key){
+    // 오른쪽 화살표 키를 눌렀다가 떼는 동작이 감지되면, 화살표를 떼었으므로,
+    // 더 이상 캐릭터메쉬가 움직이지 못하게 charPos 값 갱신하지 못하도록 walkRight 을 false로 변경함.
+    if (key == ofKey::OF_KEY_RIGHT) {
+        walkRight = false;
+    }
 
 }
 
