@@ -46,7 +46,27 @@ void ofApp::setup(){
     // height 은 전체 -1 ~ 1 에서 1.0 이 될테니 전체 y축 길이의 절반 (1.0 / 2) 이 될거임.
     buildMesh(charMesh, 0.1, 0.2, glm::vec3(0.0, -0.2, 0.0)); // 배경메쉬가 추가되면서, 캐릭터 메쉬의 사이즈와 위치를 조절함
     buildMesh(backgroundMesh, 1.0, 1.0, glm::vec3(0.0, 0.0, 0.5)); // 배경메쉬 생성 시, z좌표값이 캐릭터메쉬보다 커야(즉, 0보다 커야) NDC 좌표계 상에서 캐릭터 뒤에 가므로, z좌표값을 0보다 크게 설정해 줌. (아마 opengl은 z축이 컴퓨터 안쪽으로 갈수록 양의 방향인 거 같음.)
-    buildMesh(cloudMesh, 0.25, 0.15, glm::vec3(-0.55, 0.0, 0.0));
+    
+    /**
+     구름 메쉬 생성 시,
+     아래와 같이 초반에는 -0.55, 0.0, 0.0 을 메쉬의 기준으로 잡고
+     버텍스들을 추가해줬음.
+     
+     그런데 문제는, 메쉬의 중심과 오브젝트 공간의 원점이 일치하지 않으면,
+     버텍스 셰이더에서 scale 벡터를 pos 에 곱해줘서 메쉬의 크기를 조절할 때,
+     위치 또한 의도치 않게 움직이게 된다는 것임.
+     
+     위에 배경 메쉬나 태양메쉬는 처음 생성할 때부터
+     메쉬의 중심점이 (0, 0, z값) 이렇기 때문에 scale 벡터를 곱해줘도 위치에 변화가 없음!
+     
+     따라서, 구름메쉬도 마찬가지로 (0, 0, 0)을 메쉬의 중심점으로 잡고 생성해줘야 함.
+     
+     그러고 나서, 움직이고 싶은 값을 구름 메쉬가 사용하는 버텍스 셰이더에서
+     조절해주면, scale 도 조절할 수 있고, 위치도 원하는 곳으로 옮길 수 있음!
+     */
+    // buildMesh(cloudMesh, 0.25, 0.15, glm::vec3(-0.55, 0.0, 0.0));
+    buildMesh(cloudMesh, 0.25, 0.15, glm::vec3(0.0, 0.0, 0.0));
+    
     buildMesh(sunMesh, 1.0, 1.0, glm::vec3(0.0, 0.0, 0.4));
 
     // alienImg.load("alien.png"); // ofShader 와 마찬가지로, bin/data 디렉토리를 기준으로 한 상대경로를 받으므로, 해당 디렉토리에 이미지 파일을 저장했다면 파일명만 인자로 넣어주면 됨.
@@ -63,7 +83,7 @@ void ofApp::setup(){
     alphaTestShader.load("passthrough.vert", "alphaTest.frag");
     
     // 알파 블렌딩 기법에 사용할 cloud.frag 셰이더를 새로운 ofShader 객체로 로드해 옴.
-    cloudShader.load("passthrough.vert", "cloud.frag");
+    cloudShader.load("cloud.vert", "cloud.frag");
 }
 
 //--------------------------------------------------------------
@@ -294,8 +314,8 @@ void ofApp::draw(){
      별다른 설정을 하지 않는다면,
      오픈프레임웍스는 알파 블렌딩을 기본 설정으로 사용함.
      */
-    cloudShader.setUniformTexture("tex", sunImg, 0);
-    sunMesh.draw();
+//    cloudShader.setUniformTexture("tex", sunImg, 0);
+//    sunMesh.draw();
     
     cloudShader.end(); // 셰이더 사용을 끝냄.
 }
